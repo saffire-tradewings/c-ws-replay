@@ -53,3 +53,19 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+# IDE
+start-vscode.bat
+build/
+.vscode/
+.idea/
+
+# testing
+test_*
+
+# profiling
+*.gcda
+
+# temporal
+*.tmp
+tmp/
