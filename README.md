@@ -1,52 +1,140 @@
-# =====================
-# README.md
-# =====================
-# stw-ws-replay — log→"live" feed simulator
-
 ## What it does
-This tiny library and CLI read your stdolog-formatted files (the ones produced by `stw_stdolog_msg`),
-extract only the **WS** level lines that contain `Message received: <JSON>`, and then **replay** those
-messages with original inter-message timing (scaled by a speed factor). From your app’s perspective,
-it looks like a live WebSocket feed.
+This library and CLI read your stdolog-formatted files (produced by your existing
+trading code), extract only the **WS** level lines that contain `Message received: <JSON>`,
+and then **replay** those messages with original inter-message timing (scaled by a speed factor).
 
-## Why this is nice for you
-- Run your indicator stack off-market at 500µs, 500ms, 1s, 5s, 3m… by **replaying** real sessions.
-- Deterministic re-runs (same log → same candles/pivots), great for debugging ASan issues.
-- Minimal glue: you can reuse your existing `cb_receive(...)` as-is.
-
-## Inputs it expects
-Your log lines like (from your `stdolog.c`):
-```
-1756975187763637563 | WS    | 138519091494592:92223 | src/greeksoft.c:123 | Message received: {"response":{"BCastTime":"1727278234","data":{"ltp":"24519.35"}}}
-```
-The **first field is nanoseconds** (from `stw_time_ns`). We use that to reproduce timing.
-
-## Two ways to use
-1) **Embed the library** in your project and call `stw_replay_run(...)` with your callback pointer.
-2) **Use the demo** binary here (or copy it) that wires your provided `cb_receive` logic to the replay.
-
-## Quick start
-```
-make
-# Run CLI (prints each JSON or just sleeps to simulate):
-./build/bin/wsreplay -f tests/sample.log -s 1.0
-
-# Run demo (feeds your cb_receive to build candles):
-./build/bin/demo -f tests/sample.log -s 1.0 -tf 1 -cap 2048
-```
-
-### Demo flags
-- `-f <path>`: log file to replay
-- `-s <speed>`: 1.0 = realtime; 2.0 = twice as fast; 0.5 = half-speed
-- `-o <offset>`: start from `offset` seconds into the log (based on the first line’s ns)
-- `-tf <sec>`: target candle TF in seconds (e.g., 1, 5, 60, 180)
-- `-cap <N>`: candle capacity
-- `--loop`: loop forever
-- `--no-sleep`: deliver as fast as possible (useful for long backfills)
-- `--filter "substr"`: only replay WS lines that contain this substring (e.g., a symbol)
-
-## Sub-second timeframes
-If you want 500ms or 500µs candles, use your `stw_candle_ns_t` pipeline. The demo shows how to
-keep seconds TF. Mapping tick ns to candle ns is straightforward with the provided ns timestamps.
+From your app’s perspective, it looks like a live WebSocket feed.
 
 ---
+
+## Why use it
+- Run your indicator stack **off-market** with real captured sessions.
+- Test at arbitrary timeframes: 500µs, 500ms, 1s, 5s, 3m…
+- Deterministic re-runs (same log → same results).
+- Debug safely with AddressSanitizer/Valgrind against replayed sessions.
+
+---
+
+## Architecture
+```
+   stdolog log file
+         │
+         ▼
+   parser.c — extracts WS lines + timestamps
+         │
+         ▼
+   replay.c — schedules frames (speed / sleep / filter / loop)
+         │
+         ▼
+   user callback — your cb_receive, candle builder, pivot detector, etc.
+```
+
+---
+
+## Build
+Clone and build:
+```bash
+git clone https://github.com/saffire-tradewings/c-ws-replay.git
+cd c-ws-replay
+make
+```
+
+Outputs:
+- `build/libstwreplay.a` — static library
+- `build/bin/wsreplay`   — CLI (log → JSON stdout)
+- `build/bin/demo`       — demo: 1s candles from cb_receive
+- `build/bin/demo_ns`    — demo: multi-timeframe candles + CSV export
+
+---
+
+## Usage Recipes
+
+### 1. Quick sanity check
+```bash
+./build/bin/wsreplay -f tests/sample.log -s 1.0
+```
+Prints JSON frames to stdout, realtime speed.
+
+### 2. Fast backfill (ignore sleeps)
+```bash
+./build/bin/wsreplay -f tests/sample.log --no-sleep
+```
+Replays the file as fast as possible.
+
+### 3. Run demo with candles
+```bash
+./build/bin/demo -f tests/sample.log -tf 1 -cap 4096 --no-sleep
+```
+Builds 1-second candles and shows last candle summary.
+
+### 4. Multi-timeframe with CSV export
+```bash
+./build/bin/demo_ns tests/sample.log ./out --no-sleep
+```
+Exports:
+- `out/candle_500us.csv`
+- `out/candle_500ms.csv`
+- `out/candle_1s.csv`
+- `out/candle_3m.csv`
+
+Each CSV has:
+```
+ts,open,high,low,close
+```
+
+### 5. Filter for a symbol
+```bash
+./build/bin/demo -f tests/sample.log --filter NIFTY
+```
+Only replays WS frames containing `NIFTY`.
+
+### 6. Start later in log
+```bash
+./build/bin/wsreplay -f tests/sample.log -o 30
+```
+Skip the first 30 seconds of replay.
+
+### 7. Loop forever
+```bash
+./build/bin/wsreplay -f tests/sample.log --loop
+```
+Useful for continuous burn-in testing.
+
+---
+
+## Integration into your project
+
+In code:
+```c
+#include <stw/replay.h>
+
+static void my_cb(void* user, const char* json, size_t len) {
+    cb_receive(NULL, user, (void*)json, len); // reuse your existing WS handler
+}
+
+stw_replay_opts_t opt = {
+  .logfile = "tests/sample.log",
+  .speed   = 1.0,
+  .no_sleep = true,
+};
+
+stw_replay_run_simple(&opt, my_cb, NULL);
+```
+
+This preserves your entire pipeline — candles, pivots, indicators — but fed from logs.
+
+---
+
+## Developer Notes
+- Modify **`cb_receive_compat`** in `demo_main.c` to test your own indicators.
+- `demo_ns.c` shows how to build multiple timeframe candles in parallel.
+- The `user` pointer in callbacks lets you avoid globals — pass custom structs for cleaner multi-module testing.
+- Use `--no-sleep` for speed, or leave it off to respect original WS timing.
+- Filtering, looping, offsets, and speed scaling make replay flexible.
+
+---
+
+## Next steps
+- Extend `cb_receive_compat` to extract bid/ask/volume.
+- Add unit tests under `tests/` to validate candle counts.
+- Optional: integrate GitHub Actions for CI builds.
