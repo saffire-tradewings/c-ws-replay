@@ -8,7 +8,7 @@
 
 /*
 Expected log shape (see your stdolog.c):
-<ns> | <LEVEL> | <tid:pid> | <file:line> | Message received: <JSON>\n
+<ns> | <LEVEL> | <tid:pid> | <file:line> | [msg] <JSON>\n
 We only accept LEVEL starting with 'WS'.
 */
 
@@ -24,12 +24,12 @@ static bool parse_ns_prefix(const char* line, uint64_t* out)
 	return true;
 }
 
-/* Find the JSON after the literal "Message received: " */
+/* Find the JSON after the literal "[msg] " */
 static const char* find_json(const char* line)
 {
-	const char* p = strstr(line, "Message received:");
+	const char* p = strstr(line, "[msg]");
 	if (!p) return NULL;
-	p += strlen("Message received:");
+	p += strlen("[msg]");
 	while (*p == ' ' || *p == '\t')
 		++p;
 	return (*p == '{' || *p == '[') ? p : NULL;

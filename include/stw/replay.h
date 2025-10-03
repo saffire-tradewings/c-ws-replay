@@ -26,7 +26,7 @@ extern "C" {
  *  - Log files produced by your project’s stdolog system, where each WS frame
  *    looks like:
  *
- *    1756975187763637563 | WS    | 138519091494592:92223 | src/greeksoft.c:123 | Message received: {"response":{"BCastTime":"1727278234","data":{"ltp":"24519.35"}}}
+ *    1756975187763637563 | WS    | 138519091494592:92223 | src/greeksoft.c:123 | [msg] {"response":{"BCastTime":"1727278234","data":{"ltp":"24519.35"}}}
  *
  *    The **leading number** is nanoseconds (from stw_time_ns). We use that to
  *    reconstruct relative timing between messages.
