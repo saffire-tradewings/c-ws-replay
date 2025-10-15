@@ -3,6 +3,7 @@
  * You can pass a pointer to your existing cb as `user_cb` in demo_main.c
  */
 #include "stw/replay.h"
+
 #include <stddef.h>
 
 typedef void (*stw_ws_compat_cb)(void* wsi, void* user, void* in, size_t len);

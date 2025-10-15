@@ -1,6 +1,8 @@
 #define _GNU_SOURCE
 // #define _POSIX_C_SOURCE 199309L
 
+#include "stw/replay.h"
+
 #include <assert.h>
 #include <errno.h>
 #include <inttypes.h>
@@ -9,8 +11,6 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
-
-#include "stw/replay.h"
 
 /* internal from parser.c */
 bool _stw_parser_try_extract(const char* line, const char* filter, stw_log_frame_t* out);

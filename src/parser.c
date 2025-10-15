@@ -1,10 +1,10 @@
+#include "stw/replay.h"
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "stw/replay.h"
 
 /*
 Expected log shape (see your stdolog.c):
