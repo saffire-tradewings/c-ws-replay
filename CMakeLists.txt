@@ -148,7 +148,7 @@ if(NOT rv EQUAL 0)
   message(FATAL_ERROR \"install failed: \${rv}\")
 endif()
 ")
-add_custom_target(install_static
+add_custom_target(install_static_${PROJECT_NAME}
   COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/do_install_static.cmake"
   USES_TERMINAL
 )
@@ -183,13 +183,13 @@ if(NOT rv EQUAL 0)
   message(FATAL_ERROR \"install failed: \${rv}\")
 endif()
 ")
-add_custom_target(install_shared
+add_custom_target(install_shared_${PROJECT_NAME}
   COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/do_install_shared.cmake"
   USES_TERMINAL
 )
 
 # Deep clean of the entire build directory
-add_custom_target(realclean
+add_custom_target(realclean_${PROJECT_NAME}
   COMMAND "${CMAKE_COMMAND}" -E echo "Removing build directory: ${CMAKE_BINARY_DIR}"
   COMMAND "${CMAKE_COMMAND}" -E rm -rf "${CMAKE_BINARY_DIR}"
   USES_TERMINAL
