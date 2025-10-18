@@ -149,12 +149,38 @@ execute_process(COMMAND \"${CMAKE_COMMAND}\" --build \"${CMAKE_BINARY_DIR}\" --c
 if(NOT rv EQUAL 0)
   message(FATAL_ERROR \"build failed: \${rv}\")
 endif()
-execute_process(COMMAND \"${CMAKE_COMMAND}\" --install \"${CMAKE_BINARY_DIR}\" --config Release
-                --prefix $ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}
-                RESULT_VARIABLE rv)
-if(NOT rv EQUAL 0)
-  message(FATAL_ERROR \"install failed: \${rv}\")
+
+# Manual install - ONLY this library and its headers
+set(INSTALL_LIB_DIR \"${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/stw\")
+set(INSTALL_INC_DIR \"${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/stw\")
+
+# Determine library location based on build context
+if(\"${CMAKE_SOURCE_DIR}\" STREQUAL \"${CMAKE_CURRENT_SOURCE_DIR}\")
+  # Standalone build
+  set(LIB_PATH \"${CMAKE_BINARY_DIR}/build/lib/lib${PKGNAME}.a\")
+else()
+  # Subproject build
+  set(LIB_PATH \"${CMAKE_BINARY_DIR}/lib/lib${PKGNAME}.a\")
 endif()
+
+# Install the static library
+if(EXISTS \"\${LIB_PATH}\")
+  file(MAKE_DIRECTORY \"\${INSTALL_LIB_DIR}\")
+  file(INSTALL \"\${LIB_PATH}\" DESTINATION \"\${INSTALL_LIB_DIR}\")
+  message(STATUS \"Installed: \${LIB_PATH} -> \${INSTALL_LIB_DIR}\")
+else()
+  message(FATAL_ERROR \"Library not found: \${LIB_PATH}\")
+endif()
+
+# Install headers
+file(GLOB HEADER_FILES \"${PUBLIC_INC_DIR}/*.h\")
+if(HEADER_FILES)
+  file(MAKE_DIRECTORY \"\${INSTALL_INC_DIR}\")
+  file(INSTALL \${HEADER_FILES} DESTINATION \"\${INSTALL_INC_DIR}\")
+  message(STATUS \"Installed headers to: \${INSTALL_INC_DIR}\")
+endif()
+
+message(STATUS \"Successfully installed ${PKGNAME} static library\")
 ")
 add_custom_target(install_static_${PROJECT_NAME}
         COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/do_install_static.cmake"
