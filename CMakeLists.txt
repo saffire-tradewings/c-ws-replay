@@ -45,9 +45,9 @@ file(GLOB SRCS
 		"${SRC_DIR}/*/*/*.*"
 )
 list(FILTER SRCS EXCLUDE REGEX ".*/archive/.*")
-if (NOT SRCS)
-	message(FATAL_ERROR "No C sources found in ${SRC_DIR}. Expected at least ${SRC_DIR}/exchange.c")
-endif ()
+#if (NOT SRCS)
+#	message(FATAL_ERROR "No C sources found in ${SRC_DIR}. Expected at least ${SRC_DIR}/${PROJECT_NAME}.c")
+#endif ()
 
 # ------------------------------------------------------------------------
 # 4. Output Directories (Standalone vs. Subproject)
