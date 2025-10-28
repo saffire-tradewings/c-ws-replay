@@ -7,6 +7,8 @@
 # 1. Minimum CMake Version and Project Metadata
 # ------------------------------------------------------------------------
 cmake_minimum_required(VERSION 3.16)
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
 
 project(
 		ws-replay
@@ -72,7 +74,18 @@ endif ()
 add_library(${PKGNAME}_compileopts INTERFACE)
 target_include_directories(${PKGNAME}_compileopts INTERFACE "${INC_DIR}")
 target_compile_features(${PKGNAME}_compileopts INTERFACE c_std_99)
-add_compile_definitions($<$<CONFIG:Debug>:STW_DEBUG=1>)
+
+# Debug definitions - apply to compile options interface
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+	target_compile_definitions(${PKGNAME}_compileopts INTERFACE
+			STW_DEBUG=1
+			STW_LOG_ENABLE=1
+			STW_GC_DEBUG=1
+			STW_GS_DEBUG=1
+			STW_REQ_DEBUG=1
+	)
+endif ()
+
 if (MSVC)
 	target_compile_options(${PKGNAME}_compileopts INTERFACE /W4)
 else ()
@@ -170,13 +183,13 @@ if(NOT EXISTS \"${CMAKE_BINARY_DIR}/CMakeCache.txt\")
   endif()
 endif()
 execute_process(COMMAND \"${CMAKE_COMMAND}\" -S \"${CMAKE_SOURCE_DIR}\" -B \"${CMAKE_BINARY_DIR}\"
-                -DSTW_BUILD_SHARED=OFF -DSTW_BUILD_STATIC=ON -DCMAKE_BUILD_TYPE=Release
+                -DSTW_BUILD_SHARED=OFF -DSTW_BUILD_STATIC=ON
                 -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
                 RESULT_VARIABLE rv)
 if(NOT rv EQUAL 0)
   message(FATAL_ERROR \"configure failed: \${rv}\")
 endif()
-execute_process(COMMAND \"${CMAKE_COMMAND}\" --build \"${CMAKE_BINARY_DIR}\" --config Release --target ${PKGNAME}_static
+execute_process(COMMAND \"${CMAKE_COMMAND}\" --build \"${CMAKE_BINARY_DIR}\" --target ${PKGNAME}_static
                 RESULT_VARIABLE rv)
 if(NOT rv EQUAL 0)
   message(FATAL_ERROR \"build failed: \${rv}\")
@@ -235,13 +248,13 @@ if(NOT EXISTS \"${CMAKE_BINARY_DIR}/CMakeCache.txt\")
   endif()
 endif()
 execute_process(COMMAND \"${CMAKE_COMMAND}\" -S \"${CMAKE_SOURCE_DIR}\" -B \"${CMAKE_BINARY_DIR}\"
-                -DSTW_BUILD_SHARED=ON -DSTW_BUILD_STATIC=OFF -DCMAKE_BUILD_TYPE=Release
+                -DSTW_BUILD_SHARED=ON -DSTW_BUILD_STATIC=OFF
                 -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
                 RESULT_VARIABLE rv)
 if(NOT rv EQUAL 0)
   message(FATAL_ERROR \"configure failed: \${rv}\")
 endif()
-execute_process(COMMAND \"${CMAKE_COMMAND}\" --build \"${CMAKE_BINARY_DIR}\" --config Release --target ${PKGNAME}_shared
+execute_process(COMMAND \"${CMAKE_COMMAND}\" --build \"${CMAKE_BINARY_DIR}\" --target ${PKGNAME}_shared
                 RESULT_VARIABLE rv)
 if(NOT rv EQUAL 0)
   message(FATAL_ERROR \"build failed: \${rv}\")
@@ -307,7 +320,7 @@ add_custom_target(realclean_${PROJECT_NAME}
 # 8.4 Custom Uninstall Target (Removes All stwwsr Artifacts)
 # ------------------------------------------------------------------------
 
-file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/do_uninstall_\" ${PROJECT_NAME}\".cmake" "
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/do_uninstall_${PROJECT_NAME}.cmake" "
 set(PKGNAME \"${PKGNAME}\")
 set(PROJECT_VERSION \"${PROJECT_VERSION}\")
 set(PROJECT_VERSION_MAJOR \"${PROJECT_VERSION_MAJOR}\")
@@ -357,13 +370,14 @@ foreach(hdr \${HEADER_FILES})
   endif()
 endforeach()
 
-message(STATUS \"Uninstall of \" ${PROJECT_NAME}\" static/shared and headers complete\")
+message(STATUS \"Uninstall of ${PROJECT_NAME} static/shared and headers complete\")
 ")
 
 add_custom_target(uninstall_${PROJECT_NAME}
-		COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/do_uninstall_\" ${PROJECT_NAME}\".cmake"
+		COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/do_uninstall_${PROJECT_NAME}.cmake"
 		USES_TERMINAL
 )
+
 # ------------------------------------------------------------------------
 # 9. Main Executable Target (main.c or main.cpp from project root)
 # ------------------------------------------------------------------------
@@ -386,7 +400,7 @@ if (MAIN_SRC)
 		set_target_properties(main_${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 	endif ()
 
-	# --- Ensure exe is placed in the source folder (c-logger) regardless of where CMake was invoked ---
+	# --- Ensure exe is placed in the source folder regardless of where CMake was invoked ---
 	# Detect whether this CMake invocation is for this directory (standalone) or a top-level add_subdirectory()
 	if (CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
 		set(${PROJECT_NAME}_BUILD_MODE "standalone")
@@ -395,7 +409,7 @@ if (MAIN_SRC)
 	endif ()
 
 	# Place runtime binary into the source directory of this component.
-	# This makes the executable end up in stw/c-logger/ so it can be run with relative paths expected by main.c
+	# This makes the executable end up in source folder so it can be run with relative paths expected by main.c
 	set(${PROJECT_NAME}_EXE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 
 	# Include directories for headers

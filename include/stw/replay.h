@@ -18,12 +18,12 @@ extern "C" {
  * Purpose:
  * --------
  * This library allows you to **replay WebSocket messages** captured in your
- * stdolog-formatted log files, so you can test indicators, candle builders,
+ * stwlog-formatted log files, so you can test indicators, candle builders,
  * and pivot logic *off-market* without connecting to a broker.
  *
  * Input:
  * ------
- *  - Log files produced by your project’s stdolog system, where each WS frame
+ *  - Log files produced by your project’s stwlog system, where each WS frame
  *    looks like:
  *
  *    1756975187763637563 | WS    | 138519091494592:92223 | src/greeksoft.c:123 | [msg] {"response":{"BCastTime":"1727278234","data":{"ltp":"24519.35"}}}
@@ -106,7 +106,7 @@ typedef void (*stw_replay_msg_cb)(void* user, const char* json, size_t len);
 
 /** Replay options structure */
 typedef struct stw_replay_opts {
-    const char* logfile;       /**< Path to log file (required) */
+    const char* logfile;       /**< Path to a log file (required) */
     double      speed;         /**< Replay speed factor. 1.0 = realtime, 2.0 = twice as fast. Default = 1.0 */
     double      start_offset_s;/**< Skip this many seconds from the beginning. Default = 0.0 */
     bool        loop;          /**< Loop replay when reaching end-of-file. Default = false */
