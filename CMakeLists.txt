@@ -27,9 +27,26 @@ if (NOT DEFINED CMAKE_INSTALL_PREFIX OR CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFA
 endif ()
 
 # Build options (can be toggled via -D on the command line)
-option(STW_BUILD_SHARED "Build shared library" ON)
-option(STW_BUILD_STATIC "Build static library" ON)
-option(STW_STRIP_BINS "Strip binaries on install (Unix-like)" OFF)
+if (NOT DEFINED STW_BUILD_SHARED)
+	option(STW_BUILD_SHARED "Build shared library" ON)
+endif ()
+if (NOT DEFINED STW_BUILD_STATIC)
+	option(STW_BUILD_STATIC "Build static library" ON)
+endif ()
+if (NOT DEFINED STW_STRIP_BINS)
+	option(STW_STRIP_BINS "Strip binaries on install (Unix-like)" OFF)
+endif ()
+
+# Set default value if not already defined
+if (NOT DEFINED STW_ENABLE_CUSTOM_INSTALL_SHARED_TARGETS)
+	set(STW_ENABLE_CUSTOM_INSTALL_SHARED_TARGETS ON CACHE BOOL "Enable custom install shared targets")
+endif ()
+if (NOT DEFINED STW_ENABLE_CUSTOM_INSTALL_STATIC_TARGETS)
+	set(STW_ENABLE_CUSTOM_INSTALL_STATIC_TARGETS ON CACHE BOOL "Enable custom install static targets")
+endif ()
+if (NOT DEFINED STW_ENABLE_CUSTOM_UNINSTALL_TARGETS)
+	set(STW_ENABLE_CUSTOM_UNINSTALL_TARGETS ON CACHE BOOL "Enable custom install uninstall targets")
+endif ()
 
 # ------------------------------------------------------------------------
 # 3. Project Layout and Source Discovery
@@ -172,7 +189,8 @@ endif ()
 # 8.1 Custom Static Build+Install Target (Manual, Only This Library)
 # ------------------------------------------------------------------------
 
-file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/do_install_static.cmake" "
+if (STW_ENABLE_CUSTOM_INSTALL_STATIC_TARGETS)
+	file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/do_install_static.cmake" "
 file(MAKE_DIRECTORY \"${CMAKE_BINARY_DIR}\")
 if(NOT EXISTS \"${CMAKE_BINARY_DIR}/CMakeCache.txt\")
   execute_process(COMMAND \"${CMAKE_COMMAND}\" -S \"${CMAKE_SOURCE_DIR}\" -B \"${CMAKE_BINARY_DIR}\"
@@ -228,16 +246,18 @@ endif()
 message(STATUS \"Successfully installed ${PKGNAME} static library\")
 ")
 
-add_custom_target(install_static_${PROJECT_NAME}
-		COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/do_install_static.cmake"
-		USES_TERMINAL
-)
+	add_custom_target(install_static_${PROJECT_NAME}
+			COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/do_install_static.cmake"
+			USES_TERMINAL
+	)
+endif ()
 
 # ------------------------------------------------------------------------
 # 8.2 Custom Shared Build+Install Target (Manual, Only This Library)
 # ------------------------------------------------------------------------
 
-file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/do_install_shared.cmake" "
+if (STW_ENABLE_CUSTOM_INSTALL_SHARED_TARGETS)
+	file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/do_install_shared.cmake" "
 file(MAKE_DIRECTORY \"${CMAKE_BINARY_DIR}\")
 if(NOT EXISTS \"${CMAKE_BINARY_DIR}/CMakeCache.txt\")
   execute_process(COMMAND \"${CMAKE_COMMAND}\" -S \"${CMAKE_SOURCE_DIR}\" -B \"${CMAKE_BINARY_DIR}\"
@@ -301,26 +321,30 @@ endif()
 message(STATUS \"Successfully installed ${PKGNAME} shared library\")
 ")
 
-add_custom_target(install_shared_${PROJECT_NAME}
-		COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/do_install_shared.cmake"
-		USES_TERMINAL
-)
+	add_custom_target(install_shared_${PROJECT_NAME}
+			COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/do_install_shared.cmake"
+			USES_TERMINAL
+	)
+endif ()
 
 # ------------------------------------------------------------------------
 # 8.3 Deep Clean Target (Removes Entire Build Directory)
 # ------------------------------------------------------------------------
 
-add_custom_target(realclean_${PROJECT_NAME}
-		COMMAND "${CMAKE_COMMAND}" -E echo "Removing build directory: ${CMAKE_BINARY_DIR}"
-		COMMAND "${CMAKE_COMMAND}" -E rm -rf "${CMAKE_BINARY_DIR}"
-		USES_TERMINAL
-)
+if (STW_ENABLE_CUSTOM_REALCLEAN_TARGETS)
+	add_custom_target(realclean_${PROJECT_NAME}
+			COMMAND "${CMAKE_COMMAND}" -E echo "Removing build directory: ${CMAKE_BINARY_DIR}"
+			COMMAND "${CMAKE_COMMAND}" -E rm -rf "${CMAKE_BINARY_DIR}"
+			USES_TERMINAL
+	)
+endif ()
 
 # ------------------------------------------------------------------------
 # 8.4 Custom Uninstall Target (Removes All stwwsr Artifacts)
 # ------------------------------------------------------------------------
 
-file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/do_uninstall_${PROJECT_NAME}.cmake" "
+if (STW_ENABLE_CUSTOM_UNINSTALL_TARGETS)
+	file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/do_uninstall_${PROJECT_NAME}.cmake" "
 set(PKGNAME \"${PKGNAME}\")
 set(PROJECT_VERSION \"${PROJECT_VERSION}\")
 set(PROJECT_VERSION_MAJOR \"${PROJECT_VERSION_MAJOR}\")
@@ -373,95 +397,98 @@ endforeach()
 message(STATUS \"Uninstall of ${PROJECT_NAME} static/shared and headers complete\")
 ")
 
-add_custom_target(uninstall_${PROJECT_NAME}
-		COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/do_uninstall_${PROJECT_NAME}.cmake"
-		USES_TERMINAL
-)
+	add_custom_target(uninstall_${PROJECT_NAME}
+			COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/do_uninstall_${PROJECT_NAME}.cmake"
+			USES_TERMINAL
+	)
+endif ()
 
 # ------------------------------------------------------------------------
 # 9. Main Executable Target (main.c or main.cpp from project root)
 # ------------------------------------------------------------------------
 
-# Detect main.c or main.cpp in the project root
-set(MAIN_SRC "")
-if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/main.c")
-	set(MAIN_SRC "${CMAKE_CURRENT_SOURCE_DIR}/main.c")
-	set(MAIN_LANG C)
-elseif (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/main.cpp")
-	set(MAIN_SRC "${CMAKE_CURRENT_SOURCE_DIR}/main.cpp")
-	set(MAIN_LANG CXX)
-endif ()
-
-if (MAIN_SRC)
-	add_executable(main_${PROJECT_NAME} ${MAIN_SRC} ${SRCS})
-
-	# Use correct language for target if C++
-	if (MAIN_LANG STREQUAL "CXX")
-		set_target_properties(main_${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
+if (STW_ENABLE_CUSTOM_MAIN_TARGETS)
+	# Detect main.c or main.cpp in the project root
+	set(MAIN_SRC "")
+	if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/main.c")
+		set(MAIN_SRC "${CMAKE_CURRENT_SOURCE_DIR}/main.c")
+		set(MAIN_LANG C)
+	elseif (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/main.cpp")
+		set(MAIN_SRC "${CMAKE_CURRENT_SOURCE_DIR}/main.cpp")
+		set(MAIN_LANG CXX)
 	endif ()
 
-	# --- Ensure exe is placed in the source folder regardless of where CMake was invoked ---
-	# Detect whether this CMake invocation is for this directory (standalone) or a top-level add_subdirectory()
-	if (CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
-		set(${PROJECT_NAME}_BUILD_MODE "standalone")
-	else ()
-		set(${PROJECT_NAME}_BUILD_MODE "subdir")
+	if (MAIN_SRC)
+		add_executable(main_${PROJECT_NAME} ${MAIN_SRC} ${SRCS})
+
+		# Use correct language for target if C++
+		if (MAIN_LANG STREQUAL "CXX")
+			set_target_properties(main_${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
+		endif ()
+
+		# --- Ensure exe is placed in the source folder regardless of where CMake was invoked ---
+		# Detect whether this CMake invocation is for this directory (standalone) or a top-level add_subdirectory()
+		if (CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+			set(${PROJECT_NAME}_BUILD_MODE "standalone")
+		else ()
+			set(${PROJECT_NAME}_BUILD_MODE "subdir")
+		endif ()
+
+		# Place runtime binary into the source directory of this component.
+		# This makes the executable end up in source folder so it can be run with relative paths expected by main.c
+		set(${PROJECT_NAME}_EXE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+
+		# Include directories for headers
+		target_include_directories(main_${PROJECT_NAME} PRIVATE "${INC_DIR}")
+
+		# Link STW libraries
+		target_link_directories(main_${PROJECT_NAME} PRIVATE /usr/local/lib/stw)
+		target_link_libraries(main_${PROJECT_NAME} PRIVATE
+				stwalign
+				stwcommon
+				stwtime
+				stwreq
+				stwlog
+				stwgc
+				stwjson
+				stwcsv
+		)
+
+		# Find and link external dependencies
+		find_package(OpenSSL REQUIRED)
+		find_package(ZLIB REQUIRED)
+		find_package(PkgConfig REQUIRED)
+		pkg_check_modules(LIBWEBSOCKETS REQUIRED libwebsockets)
+		pkg_check_modules(CJSON REQUIRED libcjson)
+
+		target_link_libraries(main_${PROJECT_NAME}
+				PRIVATE
+				OpenSSL::SSL
+				OpenSSL::Crypto
+				ZLIB::ZLIB
+				${LIBWEBSOCKETS_LIBRARIES}
+				${CJSON_LIBRARIES}
+		)
+		target_include_directories(main_${PROJECT_NAME}
+				PRIVATE
+				${LIBWEBSOCKETS_INCLUDE_DIRS}
+				${CJSON_INCLUDE_DIRS}
+		)
+
+		set_target_properties(main_${PROJECT_NAME} PROPERTIES
+				RUNTIME_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
+				#RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+		)
+
+
+		add_custom_target(run_main_${PROJECT_NAME}
+				COMMAND main_${PROJECT_NAME}
+				DEPENDS main_${PROJECT_NAME}
+				WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+				COMMENT "Running main_${PROJECT_NAME}..."
+				USES_TERMINAL
+		)
 	endif ()
-
-	# Place runtime binary into the source directory of this component.
-	# This makes the executable end up in source folder so it can be run with relative paths expected by main.c
-	set(${PROJECT_NAME}_EXE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
-
-	# Include directories for headers
-	target_include_directories(main_${PROJECT_NAME} PRIVATE "${INC_DIR}")
-
-	# Link STW libraries
-	target_link_directories(main_${PROJECT_NAME} PRIVATE /usr/local/lib/stw)
-	target_link_libraries(main_${PROJECT_NAME} PRIVATE
-			stwalign
-			stwcommon
-			stwtime
-			stwreq
-			stwlog
-			stwgc
-			stwjson
-			stwcsv
-	)
-
-	# Find and link external dependencies
-	find_package(OpenSSL REQUIRED)
-	find_package(ZLIB REQUIRED)
-	find_package(PkgConfig REQUIRED)
-	pkg_check_modules(LIBWEBSOCKETS REQUIRED libwebsockets)
-	pkg_check_modules(CJSON REQUIRED libcjson)
-
-	target_link_libraries(main_${PROJECT_NAME}
-			PRIVATE
-			OpenSSL::SSL
-			OpenSSL::Crypto
-			ZLIB::ZLIB
-			${LIBWEBSOCKETS_LIBRARIES}
-			${CJSON_LIBRARIES}
-	)
-	target_include_directories(main_${PROJECT_NAME}
-			PRIVATE
-			${LIBWEBSOCKETS_INCLUDE_DIRS}
-			${CJSON_INCLUDE_DIRS}
-	)
-
-	set_target_properties(main_${PROJECT_NAME} PROPERTIES
-			RUNTIME_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
-			#RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-	)
-
-
-	add_custom_target(run_main_${PROJECT_NAME}
-			COMMAND main_${PROJECT_NAME}
-			DEPENDS main_${PROJECT_NAME}
-			WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-			COMMENT "Running main_${PROJECT_NAME}..."
-			USES_TERMINAL
-	)
 endif ()
 
 # ========================================================================
