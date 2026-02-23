@@ -310,6 +310,12 @@ if(EXISTS \"\${SONAME_PATH}\")
   message(STATUS \"Installed SONAME: \${SONAME_PATH} -> \${INSTALL_LIB_DIR}\")
 endif()
 
+# Create unversioned symlink for linker (-l flag)
+execute_process(COMMAND \"\${CMAKE_COMMAND}\" -E create_symlink
+    \"libstwwsr.so.${PROJECT_VERSION}\"
+    \"\${INSTALL_LIB_DIR}/libstwwsr.so\")
+message(STATUS \"Created linker symlink: \${INSTALL_LIB_DIR}/libstwwsr.so -> libstwwsr.so.${PROJECT_VERSION}\")
+
 # Install headers
 file(GLOB HEADER_FILES \"${PUBLIC_INC_DIR}/*.h\")
 if(HEADER_FILES)
