@@ -1,5 +1,6 @@
-#define _GNU_SOURCE
-// #define _POSIX_C_SOURCE 199309L
+#if !defined(_WIN32)
+	#define _GNU_SOURCE
+#endif
 
 #include "stw/replay.h"
 
@@ -10,11 +11,43 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <unistd.h>
+#if defined(_WIN32)
+	#define WIN32_LEAN_AND_MEAN
+	#include <windows.h>
+#else
+	#include <unistd.h>
+#endif
 
 /* internal from parser.c */
 bool _stw_parser_try_extract(const char* line, const char* filter, stw_log_frame_t* out);
 void stw_replay_sleep_until(uint64_t target_ns);
+
+/* Cross-platform getline fallback */
+#if defined(_WIN32) || (!defined(_GNU_SOURCE) && !defined(__USE_POSIX) && !defined(__APPLE__))
+static ssize_t stw_replay_getline(char **buf, size_t *cap, FILE *f) {
+	if (!*buf || *cap == 0) {
+		*cap = 256;
+		*buf = (char*)malloc(*cap);
+		if (!*buf) return -1;
+	}
+	size_t len = 0;
+	for (;;) {
+		if (!fgets(*buf + len, (int)(*cap - len), f)) {
+			return (len > 0) ? (ssize_t)len : -1;
+		}
+		len += strlen(*buf + len);
+		if (len > 0 && (*buf)[len - 1] == '\n') {
+			return (ssize_t)len;
+		}
+		size_t ncap = (*cap < 1024) ? (*cap * 2) : (*cap + *cap / 2);
+		char* nb = (char*)realloc(*buf, ncap);
+		if (!nb) return (ssize_t)len;
+		*buf = nb;
+		*cap = ncap;
+	}
+}
+#define getline stw_replay_getline
+#endif
 
 struct stw_replay {
 	stw_replay_opts_t opt;
@@ -94,9 +127,18 @@ static int run_once(stw_replay_t* R, stw_replay_msg_cb cb, void* user)
 			// Use monotonic now as epoch 0
 			uint64_t now0 = 0;
 			{
+#if defined(_WIN32)
+				static LARGE_INTEGER freq = {0};
+				if (freq.QuadPart == 0)
+					QueryPerformanceFrequency(&freq);
+				LARGE_INTEGER ctr;
+				QueryPerformanceCounter(&ctr);
+				now0 = (uint64_t)((double)ctr.QuadPart / (double)freq.QuadPart * 1e9);
+#else
 				struct timespec ts;
 				clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
 				now0 = (uint64_t)ts.tv_sec * 1000000000ull + (uint64_t)ts.tv_nsec;
+#endif
 			}
 			uint64_t target = now0 + (uint64_t)rel_ns;
 			stw_replay_sleep_until(target);
