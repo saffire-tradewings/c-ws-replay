@@ -111,6 +111,22 @@ endif ()
 
 include(GNUInstallDirs)
 
+# Platform-aware shared library naming
+if(APPLE)
+	set(STW_SHLIB_REAL "lib${PKGNAME}.${PROJECT_VERSION}.dylib")
+	set(STW_SHLIB_SO "lib${PKGNAME}.${PROJECT_VERSION_MAJOR}.dylib")
+	set(STW_SHLIB_LINK "lib${PKGNAME}.dylib")
+	set(STW_STRIP_SHARED_FLAGS "-x")
+	set(STW_STRIP_STATIC_FLAGS "-S")
+else()
+	set(STW_SHLIB_REAL "${STW_SHLIB_REAL}")
+	set(STW_SHLIB_SO "${STW_SHLIB_SO}")
+	set(STW_SHLIB_LINK "lib${PKGNAME}.so")
+	set(STW_STRIP_SHARED_FLAGS "${STW_STRIP_SHARED_FLAGS}")
+	set(STW_STRIP_STATIC_FLAGS "${STW_STRIP_STATIC_FLAGS}")
+endif()
+
+
 # ------------------------------------------------------------------------
 # 6. Library Targets and Installation
 # ------------------------------------------------------------------------
@@ -163,9 +179,9 @@ if (STW_STRIP_BINS)
 		# Strip shared library after install
 		if (TARGET ${PKGNAME}_shared)
 			install(CODE "
-                message(STATUS \"Stripping shared: ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/stw/lib${PKGNAME}.so.${PROJECT_VERSION}\")
-                execute_process(COMMAND \"${CMAKE_STRIP}\" --strip-unneeded
-                    \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/stw/lib${PKGNAME}.so.${PROJECT_VERSION}\"
+                message(STATUS \"Stripping shared: ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/stw/${STW_SHLIB_REAL}\")
+                execute_process(COMMAND \"${CMAKE_STRIP}\" ${STW_STRIP_SHARED_FLAGS}
+                    \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/stw/${STW_SHLIB_REAL}\"
                     RESULT_VARIABLE _rv)
             ")
 		endif ()
@@ -173,7 +189,7 @@ if (STW_STRIP_BINS)
 		if (TARGET ${PKGNAME}_static)
 			install(CODE "
                 message(STATUS \"Stripping static: ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/stw/lib${PKGNAME}.a\")
-                execute_process(COMMAND \"${CMAKE_STRIP}\" --strip-debug
+                execute_process(COMMAND \"${CMAKE_STRIP}\" ${STW_STRIP_STATIC_FLAGS}
                     \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/stw/lib${PKGNAME}.a\"
                     RESULT_VARIABLE _rv)
             ")
@@ -287,12 +303,12 @@ set(INSTALL_INC_DIR \"${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/stw\")
 # Determine library location based on build context
 if(\"${CMAKE_SOURCE_DIR}\" STREQUAL \"${CMAKE_CURRENT_SOURCE_DIR}\")
   # Standalone build
-  set(LIB_PATH \"${CMAKE_BINARY_DIR}/build/lib/lib${PKGNAME}.so.${PROJECT_VERSION}\")
-  set(SONAME_PATH \"${CMAKE_BINARY_DIR}/build/lib/lib${PKGNAME}.so.${PROJECT_VERSION_MAJOR}\")
+  set(LIB_PATH \"${CMAKE_BINARY_DIR}/build/lib/${STW_SHLIB_REAL}\")
+  set(SONAME_PATH \"${CMAKE_BINARY_DIR}/build/lib/${STW_SHLIB_SO}\")
 else()
   # Subproject build
-  set(LIB_PATH \"${CMAKE_BINARY_DIR}/lib/lib${PKGNAME}.so.${PROJECT_VERSION}\")
-  set(SONAME_PATH \"${CMAKE_BINARY_DIR}/lib/lib${PKGNAME}.so.${PROJECT_VERSION_MAJOR}\")
+  set(LIB_PATH \"${CMAKE_BINARY_DIR}/lib/${STW_SHLIB_REAL}\")
+  set(SONAME_PATH \"${CMAKE_BINARY_DIR}/lib/${STW_SHLIB_SO}\")
 endif()
 
 # Install the shared library (full versioned .so)
@@ -312,9 +328,9 @@ endif()
 
 # Create unversioned symlink for linker (-l flag)
 execute_process(COMMAND \"\${CMAKE_COMMAND}\" -E create_symlink
-    \"libstwwsr.so.${PROJECT_VERSION}\"
-    \"\${INSTALL_LIB_DIR}/libstwwsr.so\")
-message(STATUS \"Created linker symlink: \${INSTALL_LIB_DIR}/libstwwsr.so -> libstwwsr.so.${PROJECT_VERSION}\")
+    \"${STW_SHLIB_REAL}\"
+    \"\${INSTALL_LIB_DIR}/${STW_SHLIB_LINK}\")
+message(STATUS \"Created linker symlink: \${INSTALL_LIB_DIR}/${STW_SHLIB_LINK} -> ${STW_SHLIB_REAL}\")
 
 # Install headers
 file(GLOB HEADER_FILES \"${PUBLIC_INC_DIR}/*.h\")
@@ -361,9 +377,9 @@ set(INSTALL_INC_DIR \"${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/stw\")
 set(STATIC_LIB \"\${INSTALL_LIB_DIR}/lib\${PKGNAME}.a\")
 
 # Shared library (full versioned .so, SONAME, and unversioned symlink)
-set(SHARED_LIB \"\${INSTALL_LIB_DIR}/lib\${PKGNAME}.so.\${PROJECT_VERSION}\")
-set(SHARED_SONAME \"\${INSTALL_LIB_DIR}/lib\${PKGNAME}.so.\${PROJECT_VERSION_MAJOR}\")
-set(SHARED_UNVERSIONED \"\${INSTALL_LIB_DIR}/lib\${PKGNAME}.so\")
+set(SHARED_LIB \"\${INSTALL_LIB_DIR}/${STW_SHLIB_REAL}\")
+set(SHARED_SONAME \"\${INSTALL_LIB_DIR}/${STW_SHLIB_SO}\")
+set(SHARED_UNVERSIONED \"\${INSTALL_LIB_DIR}/${STW_SHLIB_LINK}\")
 
 # Remove static lib
 if(EXISTS \"\${STATIC_LIB}\")
@@ -448,7 +464,7 @@ if (STW_ENABLE_CUSTOM_MAIN_TARGETS)
 		target_include_directories(main_${PROJECT_NAME} PRIVATE "${INC_DIR}")
 
 		# Link STW libraries
-		target_link_directories(main_${PROJECT_NAME} PRIVATE /usr/local/lib/stw)
+		target_link_directories(main_${PROJECT_NAME} PRIVATE "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/stw")
 		target_link_libraries(main_${PROJECT_NAME} PRIVATE
 				stwalign
 				stwcommon

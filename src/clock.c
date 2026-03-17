@@ -12,6 +12,12 @@
 	#include <unistd.h>
 #endif
 
+#if defined(__APPLE__)
+	#define STW_CLOCK_MONO CLOCK_MONOTONIC
+#elif !defined(_WIN32)
+	#define STW_CLOCK_MONO CLOCK_MONOTONIC_RAW
+#endif
+
 static inline uint64_t now_ns_mono(void)
 {
 #if defined(_WIN32)
@@ -23,7 +29,7 @@ static inline uint64_t now_ns_mono(void)
 	return (uint64_t)((double)ctr.QuadPart / (double)freq.QuadPart * 1e9);
 #else
 	struct timespec ts;
-	clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
+	clock_gettime(STW_CLOCK_MONO, &ts);
 	return (uint64_t)ts.tv_sec * 1000000000ull + (uint64_t)ts.tv_nsec;
 #endif
 }

@@ -18,6 +18,12 @@
 	#include <unistd.h>
 #endif
 
+#if defined(__APPLE__)
+	#define STW_CLOCK_MONO CLOCK_MONOTONIC
+#elif !defined(_WIN32)
+	#define STW_CLOCK_MONO CLOCK_MONOTONIC_RAW
+#endif
+
 /* internal from parser.c */
 bool _stw_parser_try_extract(const char* line, const char* filter, stw_log_frame_t* out);
 void stw_replay_sleep_until(uint64_t target_ns);
@@ -136,7 +142,7 @@ static int run_once(stw_replay_t* R, stw_replay_msg_cb cb, void* user)
 				now0 = (uint64_t)((double)ctr.QuadPart / (double)freq.QuadPart * 1e9);
 #else
 				struct timespec ts;
-				clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
+				clock_gettime(STW_CLOCK_MONO, &ts);
 				now0 = (uint64_t)ts.tv_sec * 1000000000ull + (uint64_t)ts.tv_nsec;
 #endif
 			}
