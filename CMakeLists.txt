@@ -345,6 +345,11 @@ message(STATUS \"Successfully installed ${PKGNAME} shared library\")
 
 	add_custom_target(install_shared_${PROJECT_NAME}
 			COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/do_install_shared.cmake"
+			DEPENDS
+			install_shared_candle
+			install_shared_exchange
+			install_shared_json-ext
+			install_shared_time
 			USES_TERMINAL
 	)
 endif ()
