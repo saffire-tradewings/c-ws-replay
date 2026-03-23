@@ -1,9 +1,5 @@
 #if !defined(_WIN32)
-	#if defined(__APPLE__)
-		#define _POSIX_C_SOURCE 200112L
-	#else
-		#define _POSIX_C_SOURCE 199309L
-	#endif
+	#define _POSIX_C_SOURCE 199309L
 #endif
 
 #include <stdint.h>
