@@ -69,3 +69,16 @@ test_*
 # temporal
 *.tmp
 tmp/
+# CMake generated
+cmake-build-*/
+compile_commands.json
+CMakeUserPresets.json
+
+# clangd
+.cache/
+
+# logs
+*.log
+
+# env
+.env
