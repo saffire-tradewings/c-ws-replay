@@ -208,6 +208,7 @@ endif ()
 if (STW_ENABLE_CUSTOM_INSTALL_STATIC_TARGETS)
 	file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/do_install_static.cmake" "
 file(MAKE_DIRECTORY \"${CMAKE_BINARY_DIR}\")
+file(LOCK \"${CMAKE_BINARY_DIR}/stw_configure.lock\")
 if(NOT EXISTS \"${CMAKE_BINARY_DIR}/CMakeCache.txt\")
   execute_process(COMMAND \"${CMAKE_COMMAND}\" -S \"${CMAKE_SOURCE_DIR}\" -B \"${CMAKE_BINARY_DIR}\"
                   -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
@@ -223,6 +224,7 @@ execute_process(COMMAND \"${CMAKE_COMMAND}\" -S \"${CMAKE_SOURCE_DIR}\" -B \"${C
 if(NOT rv EQUAL 0)
   message(FATAL_ERROR \"configure failed: \${rv}\")
 endif()
+file(LOCK \"${CMAKE_BINARY_DIR}/stw_configure.lock\" RELEASE)
 execute_process(COMMAND \"${CMAKE_COMMAND}\" --build \"${CMAKE_BINARY_DIR}\" --target ${PKGNAME}_static
                 RESULT_VARIABLE rv)
 if(NOT rv EQUAL 0)
@@ -275,6 +277,7 @@ endif ()
 if (STW_ENABLE_CUSTOM_INSTALL_SHARED_TARGETS)
 	file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/do_install_shared.cmake" "
 file(MAKE_DIRECTORY \"${CMAKE_BINARY_DIR}\")
+file(LOCK \"${CMAKE_BINARY_DIR}/stw_configure.lock\")
 if(NOT EXISTS \"${CMAKE_BINARY_DIR}/CMakeCache.txt\")
   execute_process(COMMAND \"${CMAKE_COMMAND}\" -S \"${CMAKE_SOURCE_DIR}\" -B \"${CMAKE_BINARY_DIR}\"
                   -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
@@ -290,6 +293,7 @@ execute_process(COMMAND \"${CMAKE_COMMAND}\" -S \"${CMAKE_SOURCE_DIR}\" -B \"${C
 if(NOT rv EQUAL 0)
   message(FATAL_ERROR \"configure failed: \${rv}\")
 endif()
+file(LOCK \"${CMAKE_BINARY_DIR}/stw_configure.lock\" RELEASE)
 execute_process(COMMAND \"${CMAKE_COMMAND}\" --build \"${CMAKE_BINARY_DIR}\" --target ${PKGNAME}_shared
                 RESULT_VARIABLE rv)
 if(NOT rv EQUAL 0)
