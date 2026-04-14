@@ -6,20 +6,22 @@
 
 #include <stddef.h>
 
-typedef void (*stw_ws_compat_cb)(void* wsi, void* user, void* in, size_t len);
+typedef void (*stw_ws_compat_cb)(void *wsi, void *user, void *in, size_t len);
 
 typedef struct {
 	stw_ws_compat_cb cb;
-	void* user;
+	void            *user;
 } stw_ws_shim_t;
 
-static void _shim_cb(void* u, const char* json, size_t len)
+static void
+_shim_cb(void *u, const char *json, size_t len)
 {
-	stw_ws_shim_t* S = (stw_ws_shim_t*)u;
-	if (S && S->cb) S->cb(NULL, S->user, (void*)json, len);
+	stw_ws_shim_t *S = (stw_ws_shim_t *)u;
+	if (S && S->cb) S->cb(NULL, S->user, (void *)json, len);
 }
 
-int stw_replay_run_compat(const stw_replay_opts_t* opt, stw_ws_compat_cb cb, void* user)
+int
+stw_replay_run_compat(const stw_replay_opts_t *opt, stw_ws_compat_cb cb, void *user)
 {
 	stw_ws_shim_t S = {.cb = cb, .user = user};
 	return stw_replay_run_simple(opt, _shim_cb, &S);

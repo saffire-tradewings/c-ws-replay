@@ -1,0 +1,105 @@
+# c-backtester/.clang-format
+# Derived from /home/parmar/Projects/stw-libs/.clang-format (monorepo base).
+# Goal: idiomatic modern C (Q1-B). One-time reformat accepted; thereafter idempotent.
+
+DisableFormat: false
+BasedOnStyle: LLVM
+Language: Cpp
+
+# ── Q2: Linux braces ───────────────────────────────────────────────────
+BreakBeforeBraces: Linux
+AlwaysBreakAfterReturnType: AllDefinitions
+
+# ── Q3: B2 BlockIndent ─────────────────────────────────────────────────
+AlignAfterOpenBracket: BlockIndent
+BinPackArguments: false
+BinPackParameters: false
+AllowAllParametersOfDeclarationOnNextLine: false
+
+# ── Q5: alignment — AcrossEmptyLines across decls/assigns/macros ──────
+AlignConsecutiveMacros:
+  Enabled: true
+  AcrossEmptyLines: true
+  AcrossComments: false
+AlignConsecutiveAssignments:
+  Enabled: true
+  AcrossEmptyLines: true
+  AcrossComments: false
+AlignConsecutiveDeclarations:
+  Enabled: true
+  AcrossEmptyLines: true
+  AcrossComments: false
+AlignEscapedNewlines: LeftWithLastLine
+
+# ── Q6: short statements — terse when obvious ────────────────────────
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortLoopsOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Never
+AllowShortEnumsOnASingleLine: false
+InsertBraces: false
+
+# ── Q7: 5-group include ordering ─────────────────────────────────────
+SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex:    '^"stw/replay\.h"$'
+    Priority: 1                                       # own module
+  - Regex:    '^"internal_'
+    Priority: 2                                       # internal
+  - Regex:    '^<stw/'
+    Priority: 5                                       # sibling STW libs
+  - Regex:    '^<(libpq-fe|cjson/|curl/|openssl/|libwebsockets|microhttpd|z)'
+    Priority: 4                                       # 3rd-party
+  - Regex:    '^<'
+    Priority: 3                                       # system
+  - Regex:    '.*'
+    Priority: 99                                      # fallback
+IncludeIsMainRegex: '([-_](test|unittest))?$'
+
+# ── Q8: column limit 100 ─────────────────────────────────────────────
+ColumnLimit: 100
+
+# ── Q9: comment handling ─────────────────────────────────────────────
+AlignTrailingComments:
+  Kind: Always
+  OverEmptyLines: 0
+ReflowComments: false
+SpacesBeforeTrailingComments: 1
+CommentPragmas: '^[─═]+$|^ *[─═]|^ *Section:|^ *===|^ *@code|^ *@endcode|^ *COMPILE'
+
+# ── Q10a: switch/case flush ──────────────────────────────────────────
+IndentCaseLabels: false
+
+# ── Q10b: preprocessor flush at column 0 ─────────────────────────────
+IndentPPDirectives: None
+PPIndentWidth: -1
+
+# ── Q11: spacing ─────────────────────────────────────────────────────
+PointerAlignment: Right
+DerivePointerAlignment: false
+SpaceAfterCStyleCast: false
+SpaceBeforeParens: ControlStatements
+SpaceBeforeAssignmentOperators: true
+SpaceInEmptyParentheses: false
+SpacesInParens: Never
+SpacesInSquareBrackets: false
+BitFieldColonSpacing: Both
+
+# ── Q12: vertical density ────────────────────────────────────────────
+MaxEmptyLinesToKeep: 2
+KeepEmptyLinesAtTheStartOfBlocks: false
+SeparateDefinitionBlocks: Leave
+InsertNewlineAtEOF: true
+
+# ── Q13: misc + safety ───────────────────────────────────────────────
+BreakStringLiterals: false
+IntegerLiteralSeparator:
+  Decimal: -1
+
+# ── Indentation (from base, unchanged) ───────────────────────────────
+UseTab: ForIndentation
+TabWidth: 4
+IndentWidth: 4
+ContinuationIndentWidth: 4
