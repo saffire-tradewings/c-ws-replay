@@ -149,6 +149,7 @@ if (STW_BUILD_SHARED)
 	add_library(${PKGNAME}_shared SHARED ${SRCS})
 	add_library(${PKGNAME}::shared ALIAS ${PKGNAME}_shared)
 	target_link_libraries(${PKGNAME}_shared PRIVATE ${PKGNAME}_compileopts)
+	target_link_libraries(${PKGNAME}_shared PRIVATE stwcandle stwjson stwtime stwxchg)
 	set_target_properties(${PKGNAME}_shared PROPERTIES
 			OUTPUT_NAME "${PKGNAME}"
 			VERSION "${PROJECT_VERSION}"            # e.g., libstwwsr.so.1.0.0
@@ -166,6 +167,7 @@ if (STW_BUILD_STATIC)
 	add_library(${PKGNAME}_static STATIC ${SRCS})
 	add_library(${PKGNAME}::static ALIAS ${PKGNAME}_static)
 	target_link_libraries(${PKGNAME}_static PRIVATE ${PKGNAME}_compileopts)
+	target_link_libraries(${PKGNAME}_static PRIVATE stwcandle stwjson stwtime stwxchg)
 	set_target_properties(${PKGNAME}_static PROPERTIES
 			OUTPUT_NAME "${PKGNAME}"
 	)
