@@ -91,6 +91,19 @@ endif ()
 add_library(${PKGNAME}_compileopts INTERFACE)
 target_include_directories(${PKGNAME}_compileopts INTERFACE "${INC_DIR}")
 target_compile_features(${PKGNAME}_compileopts INTERFACE c_std_99)
+# Vcpkg / standard install: pick up sibling stw library headers
+# (align.h, portable.h, etc.) from each prefix on CMAKE_PREFIX_PATH.
+# On Linux the system include dir is on the compiler default; on
+# Windows MSVC nothing is. Iterate every prefix so this works
+# uniformly under vcpkg, vcpkg overlays, or a -DCMAKE_PREFIX_PATH=
+# build outside vcpkg.
+foreach (_stw_prefix IN LISTS CMAKE_PREFIX_PATH)
+	if (IS_DIRECTORY "${_stw_prefix}/include")
+		target_include_directories(${PKGNAME}_compileopts SYSTEM INTERFACE
+				"${_stw_prefix}/include")
+	endif ()
+endforeach ()
+
 
 # Debug definitions - apply to compile options interface
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
