@@ -103,6 +103,17 @@ foreach (_stw_prefix IN LISTS CMAKE_PREFIX_PATH)
 				"${_stw_prefix}/include")
 	endif ()
 endforeach ()
+# Vcpkg / standard install: expose every CMAKE_PREFIX_PATH prefix's
+# lib/ as a link search dir so target_link_libraries(... stwfoo) can
+# find stwfoo.lib (MSVC) / libstwfoo.so (Linux). Companion to the
+# include-bridge loop above.
+foreach (_stw_prefix IN LISTS CMAKE_PREFIX_PATH)
+	if (IS_DIRECTORY "${_stw_prefix}/lib")
+		target_link_directories(${PKGNAME}_compileopts INTERFACE
+				"${_stw_prefix}/lib")
+	endif ()
+endforeach ()
+
 
 
 # Debug definitions - apply to compile options interface
